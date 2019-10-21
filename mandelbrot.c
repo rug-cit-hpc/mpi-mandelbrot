@@ -22,7 +22,7 @@
  */
 int main(int argc, char **argv) 
 {
-    int proc_count, proc_id, retval;
+    int proc_count, proc_id, retval,step;
     mo_opts_t *opts;
 
     /* initialize MPI */
@@ -53,11 +53,22 @@ int main(int argc, char **argv)
     retval = parse_args(argc, argv, opts, proc_id, proc_count);
     
     if (retval == EXIT_SUCCESS) {
-        /* depending on process id run as master (0) or slave (n) */
-        if (proc_id == 0) {
-            retval = master_proc(proc_count - 1, opts);
-        } else {
-            retval = slave_proc(proc_id, opts);
+        for (step=0; step<opts->zoom_steps; step++) {
+            /* depending on process id run as master (0) or slave (n) */
+            if (proc_id == 0) {
+                /* print parameters for this step */
+                print_params(opts);
+                /* start master process */
+                retval = master_proc(proc_count - 1, opts, step);
+            } else {
+                retval = slave_proc(proc_id, opts);
+            }
+            /* recalculate problem space */
+            opts->axis_length *= opts->zoom_factor;
+            opts->min_re = opts->x_offset - opts->axis_length;
+            opts->max_re = opts->x_offset + opts->axis_length;
+            opts->min_im = opts->y_offset - opts->axis_length;
+            opts->max_im = opts->y_offset + opts->axis_length;
         }
     }
 
@@ -82,12 +93,13 @@ static int parse_args(int argc, char **argv, mo_opts_t *opts, int proc_id, int p
     opts->color_mask = MO_COLORMASK;
     opts->blocksize = MO_BLOCKSIZE;
     opts->show_progress = MO_PROGRESS;
+    opts->zoom_steps = MO_ZOOMSTEPS;
+    opts->zoom_factor = MO_ZOOMFACTOR;
+    opts->axis_length = MO_N;
+    opts->x_offset = 0;
+    opts->y_offset = 0;
 
-    double x_offset = 0;
-    double y_offset = 0;
-    double axis_length = MO_N;
-
-    const char *opt_string = "c:r:n:hb:p:q:m:x:y:a:o:s";
+    const char *opt_string = "c:r:n:hb:p:q:m:x:y:a:o:z:f:s";
 
     int optval_int, c, index;
     long optval_long;
@@ -103,6 +115,7 @@ static int parse_args(int argc, char **argv, mo_opts_t *opts, int proc_id, int p
             case 'c': /* width */
             case 'r': /* height */
             case 'n': /* iterations */
+            case 'z': /* zoom steps */
                 optval_int = atoi(optarg);
 
                 if (optval_int <= 0) {
@@ -116,7 +129,8 @@ static int parse_args(int argc, char **argv, mo_opts_t *opts, int proc_id, int p
                 if (c == 'c') opts->width = optval_int; else
                 if (c == 'r') opts->height = optval_int; else
                 if (c == 'n') opts->max_iterations = optval_int; else
-                if (c == 'b') opts->blocksize = optval_int;
+                if (c == 'b') opts->blocksize = optval_int; else
+                if (c == 'z') opts->zoom_steps = optval_int;
                 break;
             case 'p': /* colormin */
             case 'q': /* colormax */
@@ -129,21 +143,22 @@ static int parse_args(int argc, char **argv, mo_opts_t *opts, int proc_id, int p
                 break;
             case 'x': /* xoffset */
             case 'y': /* yoffset */
-            case 'a': /* axis-length */
                 optval_double = atof(optarg);
-
-                if (c == 'x') x_offset = optval_double; else
-                if (c == 'y') y_offset = optval_double; else
-                if (c == 'a') { 
-                    if (optval_double == 0) {
-                        if (proc_id == 0) {
-                            print_usage(argv);
-                            eprintf("argument of '-%c' cannot be zero.\n", c);
-                        }
-                        return EXIT_FAILURE;
-                    }
-                    axis_length = optval_double;
+                if (c == 'x') opts->x_offset = optval_double; else
+                if (c == 'y') opts->y_offset = optval_double;
+                break;
+            case 'a': /* axis-length */
+            case 'f': /* zoom factor */
+                optval_double = atof(optarg);
+                if (optval_double == 0) {
+                     if (proc_id == 0) {
+                         print_usage(argv);
+                         eprintf("argument of '-%c' cannot be zero.\n", c);
+                     }
+                     return EXIT_FAILURE;
                 }
+                if (c == 'a') opts->axis_length = optval_double; else
+                if (c == 'f') opts->zoom_factor = optval_double;
                 break;
             case 'o': /* output */
                 opts->filename = optarg;
@@ -194,19 +209,10 @@ static int parse_args(int argc, char **argv, mo_opts_t *opts, int proc_id, int p
     }
     
     /* calculate problem space */
-    opts->min_re = x_offset - axis_length;
-    opts->max_re = x_offset + axis_length;
-    opts->min_im = y_offset - axis_length;
-    opts->max_im = y_offset + axis_length;
-
-    /* summarize used options on master before starting computation */
-    if (proc_id == 0) {
-        if (argc < 2) {
-            printf("Note: Program invoked with default options.\n" \
-                "      Run '%s -h' for detailed information on available arguments.\n\n", argv[0]);
-        }
-        print_params(opts, x_offset, y_offset, axis_length);
-    }
+    opts->min_re = opts->x_offset - opts->axis_length;
+    opts->max_re = opts->x_offset + opts->axis_length;
+    opts->min_im = opts->y_offset - opts->axis_length;
+    opts->max_im = opts->y_offset + opts->axis_length;
 
     return EXIT_SUCCESS;
 }
@@ -214,7 +220,7 @@ static int parse_args(int argc, char **argv, mo_opts_t *opts, int proc_id, int p
 /*
  * display parameters used for computation
  */
-static void print_params(mo_opts_t *opts, double x_off, double y_off, double axis_length)
+static void print_params(mo_opts_t *opts)
 {
     printf("Computation parameters:\n" \
         "    output file              %s\n" \
@@ -228,10 +234,12 @@ static void print_params(mo_opts_t *opts, double x_off, double y_off, double axi
         "    x-offset                 %g\n" \
         "    y-offset                 %g\n" \
         "    axis length              %g\n" \
+        "    zoom steps               %d\n" \
+        "    zoom factor              %g\n" \
         "    coordinate system range  [%g, %g]\n\n",
         opts->filename, opts->max_iterations, opts->blocksize, opts->width, opts->height, 
-        opts->min_color, opts->max_color, opts->color_mask, x_off, y_off, axis_length, 
-        opts->min_re, opts->max_re);
+        opts->min_color, opts->max_color, opts->color_mask, opts->x_offset, opts->y_offset, 
+        opts->axis_length, opts->zoom_steps, opts->zoom_factor, opts->min_re, opts->max_re);
 }
 
 /*
@@ -271,11 +279,12 @@ static void print_usage(char **argv)
 /*
  * master process logic
  */
-static int master_proc(int slave_count, mo_opts_t *opts) 
+static int master_proc(int slave_count, mo_opts_t *opts, int step) 
 {
     int *rows = (int *) malloc(opts->blocksize*sizeof(*rows));
     long *data = (long *) malloc((opts->width + 1)*opts->blocksize*sizeof(*data));
     char *rgb = (char *) malloc(3*opts->width*opts->height*sizeof(*rgb));
+    char fname[255];
 
     if (rows == NULL || data == NULL || rgb == NULL) {
         eprintf("unable to allocate memory for buffers.\n");
@@ -334,9 +343,9 @@ static int master_proc(int slave_count, mo_opts_t *opts)
                 pixel_color = data[offset + col + 1] & opts->color_mask;
                 pixel_pos = 3*(opts->width*data[offset] + col);
 
-                rgb[pixel_pos] = (char) ((pixel_color >> 16) & 0xFF);
+                rgb[pixel_pos] = (char) ((pixel_color) & 0xFF);
                 rgb[pixel_pos + 1] = (char) ((pixel_color >> 8) & 0xFF);
-                rgb[pixel_pos + 2] = (char) (pixel_color & 0xFF);
+                rgb[pixel_pos + 2] = (char) ((pixel_color >> 16) & 0xFF);
             }
         }
 
@@ -356,13 +365,15 @@ static int master_proc(int slave_count, mo_opts_t *opts)
     printf("Finished. Computation finished in %g sec.\n\n", end_time - start_time);
 
     /* write rgb data to file */
-    printf("Creating bitmap image.\n");
-    retval = write_bitmap(opts->filename, opts->width, opts->height, rgb);
+    snprintf(fname, 255, "%s.%03d.bmp",opts->filename, step+1);
+    printf("Creating bitmap image.");
+   
+    retval = write_bitmap(fname, opts->width, opts->height, rgb);
 
     if (retval == EXIT_SUCCESS) {
-        printf("Finished. Image stored in '%s'.\n", opts->filename);
+        printf("Finished. Image stored in '%s'.\n\n", fname);
     } else {
-        eprintf("failed to write bitmap to file.\n");
+        eprintf("failed to write bitmap to file.\n\n");
     }
     
     free(rows);

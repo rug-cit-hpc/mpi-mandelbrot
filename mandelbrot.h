@@ -30,7 +30,7 @@
 #define MO_N           2                    /* size of problem space (x, y from -MO_N to MO_N) */
 #define MO_THRESHOLD   4                    /* divergence threshold (usually 4) */
 #define MO_SIZE        1024                 /* height & width of the canvas in pixels */
-#define MO_FILENAME    "./mandelbrot.bmp"   /* default filename of resulting bitmap */
+#define MO_FILENAME    "image"              /* default filename of resulting bitmap */
 #define MO_MAXITER     2000                 /* default maximum iterations */
 #define MO_BLOCKSIZE   1                    /* default # of blocks (rows) to be assigned for 
                                                computation to a slave each time */
@@ -40,6 +40,8 @@
 #define MO_PROGRESS    0                    /* show (1) or hide (0) progress  */
 #define MO_PWIDTH      50                   /* progress bar width */
 #define MO_PUPDATE     20                   /* update progress bar MO_UPDATE times */
+#define MO_ZOOMSTEPS   1                    /* default number of zoom steps to take */                                               
+#define MO_ZOOMFACTOR  0.75                 /* default zoom factor per step */
 
 /*
  * communication flags
@@ -84,6 +86,10 @@ typedef struct _mo_opts
     long min_color, max_color;  /* color ranges */
     long color_mask;            /* color mask */
     int show_progress;          /* if 1, show progress */
+    int zoom_steps;             /* number of zoom steps */
+    double zoom_factor;         /* zoom factor per step */
+    double axis_length;         /* axis length */
+    double x_offset, y_offset;  /* x & y offset */
 } mo_opts_t;
 
 /*
@@ -124,9 +130,9 @@ typedef struct _mo_bmp_header
  * method prototypes 
  */
 static int parse_args(int, char **, mo_opts_t *, int, int);
-static void print_params(mo_opts_t *, double, double, double);
+static void print_params(mo_opts_t *);
 static void print_usage(char **);
-static int master_proc(int, mo_opts_t *);
+static int master_proc(int, mo_opts_t *, int);
 static int slave_proc(int, mo_opts_t *);
 static long mandelbrot(int, int, mo_scale_t *, mo_opts_t *);
 static inline void print_progress(int, int);
