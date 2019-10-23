@@ -14,63 +14,76 @@ import time
 import glob
 import os
 
-def get_latest_image():
-    while 1:
-        list_of_files = glob.glob('*.bmp')
-        if list_of_files:
-            break
-        time.sleep(0.1)
-    latest_file = max(list_of_files, key=os.path.getctime)
-    return latest_file
+class ShowLatestImage():
 
-def update_image(panel1, root, latest_image, current_image):
-    imageFile = get_latest_image()
-    if imageFile != current_image:
-        current_image = imageFile
+    def __init__(self):
+        self.root = tk.Tk()
+
+        # pick an image file you have .bmp  .jpg  .gif.  .png
+        # load the file and covert it to a Tkinter image object
+        imageFile = self.getLatestImage()
+        self.latestImage = self.readImage(imageFile)
+        self.currentImage = imageFile
+        self.root.title(imageFile)
+        print("Will display %s" % self.currentImage)
+
+        # get the image size
+        w = self.latestImage.width()
+        h = self.latestImage.height()
+
+        # position coordinates of root 'upper left corner'
+        x = 0
+        y = 0
+
+        # make the root window the size of the image
+        self.root.geometry("%dx%d+%d+%d" % (w, h, x, y))
+
+        # root has no image argument, so use a label as a panel
+        self.panel1 = tk.Label(self.root, image=self.latestImage)
+        self.panel1.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
+
+        print("Starting to display %s" % imageFile)
+        self.root.after(20, self.updateImage)
+        self.root.mainloop()
+
+    def readImage(self, imageFile):
         readok = False
+        readcount = 0
         while not readok:
-            try: 
-                latest_image = ImageTk.PhotoImage(Image.open(imageFile))
+            try:
+                image = ImageTk.PhotoImage(Image.open(imageFile))
                 readok = True
             except:
+                readcount = readcount + 1
+                if readcount >5:
+                    print("Too many file reading failures on %s" % imageFile)
+                    sys.exit()
                 readok = False
                 pass
-        print("Display %s" % imageFile)
-    panel1.configure(image=latest_image)
-    panel1.image = latest_image
-    root.after(100, update_image,panel1,root,latest_image,current_image)       # Set to call again in 30 seconds
+        return image
+
+
+    def getLatestImage(self):
+        while 1:
+            listOfFiles = glob.glob('*.bmp')
+            if listOfFiles:
+                break
+            time.sleep(0.02)
+        latestFile = max(listOfFiles, key=os.path.getctime)
+        return latestFile
+
+    def updateImage(self):
+        imageFile = self.getLatestImage()
+        if imageFile != self.currentImage:
+            self.currentImage = imageFile
+            self.latestImage = self.readImage(imageFile)
+            print("Display %s" % imageFile)
+        self.root.title(imageFile)
+        self.panel1.configure(image=self.latestImage)
+        self.root.after(20, self.updateImage)       # Set to call again in 30 seconds
 
 def main():
-    root = tk.Tk()
-    root.title('My Pictures')
-
-    # pick an image file you have .bmp  .jpg  .gif.  .png
-    # load the file and covert it to a Tkinter image object
-    imageFile = get_latest_image()
-    current_image = imageFile
-    print("Will display %s" % current_image)
-    latest_image = ImageTk.PhotoImage(Image.open(imageFile))
-
-    # get the image size
-    w = latest_image.width()
-    h = latest_image.height()
-
-    # position coordinates of root 'upper left corner'
-    x = 0
-    y = 0
-
-    # make the root window the size of the image
-    root.geometry("%dx%d+%d+%d" % (w, h, x, y))
-
-    # root has no image argument, so use a label as a panel
-    panel1 = tk.Label(root, image=latest_image)
-    panel1.image = latest_image
-    panel1.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
-    panel1.configure(image=latest_image)
-
-    print("Starting to display %s" % imageFile)
-    root.after(100, update_image, panel1, root, latest_image, current_image)
-    root.mainloop()
+    app = ShowLatestImage()
 
 if __name__ == '__main__':
     main()
