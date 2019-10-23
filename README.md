@@ -30,6 +30,9 @@ Usage
 	    -p {hexnum}          Minimum color of the resulting image. (default: 0x000000)
 	    -q {hexnum}          Maximum color of the resulting image. (default: 0xffffff)
 	    -m {hexnum}          Hex mask to manipulate color ranges. (default: 0xffffff)
+        -z {steps}           Number of zoom steps to take. (default: 1)
+        -f {zoomfactor}      Zoom factor. Axis is reduced by this factor for each step. 
+                             (default: 0.75)
 	    -s                   Print progress of the computation.
 
 Usage examples
