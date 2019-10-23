@@ -13,6 +13,7 @@ from tkinter.ttk import Frame, Button, Style
 import time
 import glob
 import os
+import sys
 
 class ShowLatestImage():
 
@@ -43,22 +44,23 @@ class ShowLatestImage():
         self.panel1.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
 
         print("Starting to display %s" % imageFile)
-        self.root.after(20, self.updateImage)
+        self.root.after(100, self.updateImage)
         self.root.mainloop()
 
     def readImage(self, imageFile):
-        readok = False
-        readcount = 0
-        while not readok:
+        readOk = False
+        readCount = 0
+        while not readOk:
             try:
                 image = ImageTk.PhotoImage(Image.open(imageFile))
-                readok = True
+                readOk = True
             except:
-                readcount = readcount + 1
-                if readcount >5:
+                readCount = readCount + 1
+                if readCount >10:
                     print("Too many file reading failures on %s" % imageFile)
                     sys.exit()
-                readok = False
+                readOk = False
+                time.sleep(0.01)
                 pass
         return image
 
@@ -80,7 +82,7 @@ class ShowLatestImage():
             print("Display %s" % imageFile)
         self.root.title(imageFile)
         self.panel1.configure(image=self.latestImage)
-        self.root.after(20, self.updateImage)       # Set to call again in 30 seconds
+        self.root.after(100, self.updateImage)       # Set to call itself again
 
 def main():
     app = ShowLatestImage()
