@@ -298,14 +298,15 @@ static int master_proc(int slave_count, mo_opts_t *opts, int step)
     int current_row = 0;
     int running_tasks = 0;
     int retval = EXIT_SUCCESS; 
+    COLOR_t color;
     
     MPI_Status status;
 
     printf("Computation started.\n");
-    
+
     /* get start time */
     start_time = MPI_Wtime();
-    
+
     /* assign each slave initial row(s) */
     for (int p = 0; p < slave_count; ++p) {
         for (int i = 0; i < opts->blocksize; ++i) {
@@ -343,9 +344,17 @@ static int master_proc(int slave_count, mo_opts_t *opts, int step)
                 pixel_color = data[offset + col + 1] & opts->color_mask;
                 pixel_pos = 3*(opts->width*data[offset] + col);
 
-                rgb[pixel_pos] = (char) ((pixel_color) & 0xFF);
-                rgb[pixel_pos + 1] = (char) ((pixel_color >> 8) & 0xFF);
-                rgb[pixel_pos + 2] = (char) ((pixel_color >> 16) & 0xFF);
+                color = HSVtoRGB(36*fmod(sqrt(pixel_color),10.0), 1.0, 1.0);
+                if (pixel_color == opts->max_iterations - 1) {
+                    rgb[pixel_pos    ] = 0;
+                    rgb[pixel_pos + 1] = 0;
+                    rgb[pixel_pos + 2] = 0;
+                }
+                else {
+                    rgb[pixel_pos    ] = color.r;
+                    rgb[pixel_pos + 1] = color.g;
+                    rgb[pixel_pos + 2] = color.b;
+                }
             }
         }
 
@@ -457,10 +466,10 @@ static long mandelbrot(int col, int row, mo_scale_t *scale, mo_opts_t *opts)
         a.re = tmp;
         r2 = a.re*a.re + a.im*a.im;
         ++n;
-    } while (r2 < MO_THRESHOLD && n < opts->max_iterations);
+    } while (r2 < MO_THRESHOLD && n <= opts->max_iterations);
 
-    /* scale color and return */
-    return (long) ((n - 1)*scale->color) + opts->min_color;
+    /* return iteration count */
+    return (long) (n - 1);
 }
 
 /*
@@ -485,6 +494,58 @@ static inline void print_progress(int rows_processed, int row_count)
  
     /* carriage return to overwrite line on next progress update */
     printf("]\r");
+}
+
+
+/*
+ * H(Hue): 0 - 360 degree (integer)
+ * S(Saturation): 0 - 1.00 (double)
+ * V(Value): 0 - 1.00 (double)
+ *
+ * output[3]: Output, array size 3, int
+ */
+COLOR_t HSVtoRGB(double H, double S, double V) {
+	double C = S * V;
+	double X = C * (1.0 - fabs(fmod(H / 60.0, 2.0) - 1.0));
+	double m = V - C;
+	double Rs, Gs, Bs;
+    COLOR_t c;
+
+	if(H >= 0 && H < 60) {
+		Rs = C;
+		Gs = X;
+		Bs = 0;
+	}
+	else if(H >= 60 && H < 120) {
+		Rs = X;
+		Gs = C;
+		Bs = 0;
+	}
+	else if(H >= 120 && H < 180) {
+		Rs = 0;
+		Gs = C;
+		Bs = X;
+	}
+	else if(H >= 180 && H < 240) {
+		Rs = 0;
+		Gs = X;
+		Bs = C;
+	}
+	else if(H >= 240 && H < 300) {
+		Rs = X;
+		Gs = 0;
+		Bs = C;
+	}
+	else {
+		Rs = C;
+		Gs = 0;
+		Bs = X;
+	}
+
+	c.r = (Rs + m) * 255;
+	c.g = (Gs + m) * 255;
+	c.b = (Bs + m) * 255;
+    return(c);
 }
 
 /*

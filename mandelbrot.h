@@ -18,6 +18,7 @@
 #ifndef _MO_MANDELBROT_H
 #define _MO_MANDELBROT_H
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -126,6 +127,12 @@ typedef struct _mo_bmp_header
                                    are important */
 } mo_bmp_header_t;
 
+typedef struct COLOR 
+{
+    char r,g,b;
+} COLOR_t;
+
+
 /* 
  * method prototypes 
  */
@@ -137,5 +144,7 @@ static int slave_proc(int, mo_opts_t *);
 static long mandelbrot(int, int, mo_scale_t *, mo_opts_t *);
 static inline void print_progress(int, int);
 static int write_bitmap(const char *, int, int, char *);
+static COLOR_t HSVtoRGB(double, double, double);
+
 
 #endif /* _MO_MANDELBROT_H */
