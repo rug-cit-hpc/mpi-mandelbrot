@@ -345,7 +345,7 @@ static int master_proc(int slave_count, mo_opts_t *opts, int step)
                 pixel_pos = 3*(opts->width*data[offset] + col);
 
                 color = HSVtoRGB(36*fmod(sqrt(pixel_color),10.0), 1.0, 1.0);
-                if (pixel_color == opts->max_iterations - 1) {
+                if (pixel_color == opts->max_iterations) {
                     rgb[pixel_pos    ] = 0;
                     rgb[pixel_pos + 1] = 0;
                     rgb[pixel_pos + 2] = 0;
