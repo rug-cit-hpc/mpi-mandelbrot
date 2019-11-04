@@ -31,5 +31,5 @@ all:  $(ALL)
 
 .PHONY:  clean
 clean:
-	-rm -f $(ALL) mandelbrot.bmp
+	-rm -f $(ALL)
 
