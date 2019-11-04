@@ -41,10 +41,13 @@ class ShowLatestImage():
 
         # root has no image argument, so use a label as a panel
         self.panel1 = tk.Label(self.root, image=self.latestImage)
+        # Keep a reference to the image to prevent it from being
+        # garbage cleaned
+        self.panel1.image = self.latestImage
         self.panel1.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
 
         print("Starting to display %s" % imageFile)
-        self.root.after(200, self.updateImage)
+        self.root.after(50, self.updateImage)
         self.root.mainloop()
 
     def readImage(self, imageFile):
@@ -82,7 +85,10 @@ class ShowLatestImage():
             print("Display %s" % imageFile)
         self.root.title(imageFile)
         self.panel1.configure(image=self.latestImage)
-        self.root.after(200, self.updateImage)       # Set to call itself again
+        # Keep a reference to the image to prevent it from being
+        # garbage cleaned
+        self.panel1.image = self.latestImage
+        self.root.after(50, self.updateImage)       # Set to call itself again
 
 def main():
     app = ShowLatestImage()
