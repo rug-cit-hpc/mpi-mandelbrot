@@ -15,6 +15,6 @@ while [ 1 ]; do
     for i in $(seq 0 $(( ${#xc[*]} - 1)) ); do
         echo "Running Mandelbrot for " ${xc[$i]} ", " ${yc[$i]}
         mpirun ./mandelbrot -a 2.0 -x ${xc[$i]}  -y ${yc[$i]} -z 100 -f 0.8 -n 20000
-        sleep 15
+        sleep 10
     done
 done
