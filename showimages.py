@@ -47,7 +47,7 @@ class ShowLatestImage():
         self.panel1.pack(side=tk.TOP, fill=tk.BOTH, expand=tk.YES)
 
         print("Starting to display %s" % imageFile)
-        self.root.after(50, self.updateImage)
+        self.root.after(30, self.updateImage)
         self.root.mainloop()
 
     def readImage(self, imageFile):
@@ -59,7 +59,7 @@ class ShowLatestImage():
                 readOk = True
             except:
                 readCount = readCount + 1
-                if readCount >20:
+                if readCount >5:
                     print("Too many file reading failures on %s" % imageFile)
                     sys.exit()
                 readOk = False
@@ -73,8 +73,10 @@ class ShowLatestImage():
             listOfFiles = glob.glob('*.bmp')
             if listOfFiles:
                 break
-            time.sleep(0.02)
+            time.sleep(0.05)
         latestFile = max(listOfFiles, key=os.path.getctime)
+        while os.path.exists(latestFile + '.lock'):
+            time.sleep(0.01)
         return latestFile
 
     def updateImage(self):
@@ -88,7 +90,7 @@ class ShowLatestImage():
         # Keep a reference to the image to prevent it from being
         # garbage cleaned
         self.panel1.image = self.latestImage
-        self.root.after(50, self.updateImage)       # Set to call itself again
+        self.root.after(30, self.updateImage)       # Set to call itself again
 
 def main():
     app = ShowLatestImage()
