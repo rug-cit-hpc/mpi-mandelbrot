@@ -284,7 +284,7 @@ static int master_proc(int slave_count, mo_opts_t *opts, int step)
     int *rows = (int *) malloc(opts->blocksize*sizeof(*rows));
     long *data = (long *) malloc((opts->width + 1)*opts->blocksize*sizeof(*data));
     char *rgb = (char *) malloc(3*opts->width*opts->height*sizeof(*rgb));
-    char fname[255];
+    char fname[250];
 
     if (rows == NULL || data == NULL || rgb == NULL) {
         eprintf("unable to allocate memory for buffers.\n");
@@ -374,7 +374,7 @@ static int master_proc(int slave_count, mo_opts_t *opts, int step)
     printf("Finished. Computation finished in %g sec.\n\n", end_time - start_time);
 
     /* write rgb data to file */
-    snprintf(fname, 255, "%s.%03d.bmp",opts->filename, step+1);
+    snprintf(fname, 250, "%s.%03d.bmp",opts->filename, step+1);
     printf("Creating bitmap image.");
    
     retval = write_bitmap(fname, opts->width, opts->height, rgb);
@@ -557,8 +557,9 @@ static int write_bitmap(const char *filename, int width, int height, char *rgb)
     int i, j, pixel_pos;
     int bytes_per_line;
     unsigned char *line;
+    char lockfilename[255];
 
-    FILE *file;
+    FILE *file, *lockfile;
     mo_bmp_header_t bmph;
 
     /* the length of each line must be a multiple of 4 bytes */
@@ -580,6 +581,10 @@ static int write_bitmap(const char *filename, int width, int height, char *rgb)
     bmph.y_pels_per_meter = 0;
     bmph.clr_used = 0;       
     bmph.clr_important = 0; 
+
+    /* Create lock file */
+    snprintf(lockfilename, 255, "%s.lock",filename);
+    lockfile = fopen(lockfilename, "wb");
 
     file = fopen(filename, "wb");
 
@@ -626,6 +631,9 @@ static int write_bitmap(const char *filename, int width, int height, char *rgb)
 
     free(line);
     fclose(file);
+
+    fclose(lockfile);
+    remove(lockfilename);
 
     return EXIT_SUCCESS;
 }
