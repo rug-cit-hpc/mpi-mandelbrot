@@ -17,8 +17,8 @@
 #
 
 MPICC       = mpicc
-CFLAGS      = -O3 -Wall -pedantic -std=c99 -lm
-LFLAGS      =  
+CFLAGS      = -O3 -Wall -pedantic -std=c99
+LFLAGS      =  -lm
 
 ALL = mandelbrot
 HFILES = mandelbrot.h
