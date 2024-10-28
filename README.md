@@ -1,3 +1,9 @@
+# Archived
+
+The code in this repository is not expected to be changed. If some updates 
+are needed, first import the project in GitLab and work on it there.
+
+
 mpi-mandelbrot
 ==============
 
